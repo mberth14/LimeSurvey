@@ -3809,7 +3809,7 @@ function db_upgrade_all($iOldDBVersion, $bSilent = false)
 
         if ($iOldDBVersion < 445) {
             $oTransaction = $oDB->beginTransaction();
-            // question_themes
+            // archived_table_settings
             $oDB->createCommand()->createTable('{{archived_table_settings}}', [
                 'id' => "pk",
                 'survey_id' => "int NOT NULL",
