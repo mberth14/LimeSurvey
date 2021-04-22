@@ -2274,7 +2274,10 @@ class tokens extends Survey_Common_Action
         $aData['surveyid'] = $iSurveyId;
         $aData['title_bar']['title'] = $survey->currentLanguageSettings->surveyls_title . " (" . gT("ID") . ":" . $iSurveyId . ")";
 
-        $date = date('YmdHis');
+        $datestamp = time();
+        $date = date('YmdHis', $datestamp); //'His' adds 24hours+minutes to name to allow multiple deactiviations in a day
+        $DBDate = "date('Y-m-d H:i:s', $datestamp)";
+        $userID = Yii::app()->user->getId();
         /* If there is not a $_POST value of 'ok', then ask if the user is sure they want to
            delete the tokens table */
         $oldtable = "tokens_$iSurveyId";
@@ -2297,6 +2300,15 @@ class tokens extends Survey_Common_Action
         } else /* The user has confirmed they want to delete the tokens table */
         {
             Yii::app()->db->createCommand()->renameTable("{{{$oldtable}}}", "{{{$newtable}}}");
+
+            $archivedTokenSettings = new ArchivedTableSettings();
+            $archivedTokenSettings->survey_id = $iSurveyId;
+            $archivedTokenSettings->user_id = $userID;
+            $archivedTokenSettings->tbl_name = $newtable;
+            $archivedTokenSettings->tbl_type = 'token';
+            $archivedTokenSettings->created = $DBDate;
+            $archivedTokenSettings->properties = $aData['thissurvey']['tokenencryptionoptions'];
+            $archivedTokenSettings->save();
 
             //Remove any survey_links to the CPDB
             SurveyLink::model()->deleteLinksBySurvey($iSurveyId);
