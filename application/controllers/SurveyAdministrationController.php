@@ -1564,7 +1564,7 @@ class SurveyAdministrationController extends LSBaseController
                     $archivedTokenSettings = new ArchivedTableSettings();
                     $archivedTokenSettings->survey_id = $iSurveyID;
                     $archivedTokenSettings->user_id = $userID;
-                    $archivedTokenSettings->tbl_name = $tnewtable;
+                    $archivedTokenSettings->tbl_name = "old_tokens_{$iSurveyID}_{$date}";
                     $archivedTokenSettings->tbl_type = 'token';
                     $archivedTokenSettings->created = $DBDate;
                     $archivedTokenSettings->properties = $aData['aSurveysettings']['tokenencryptionoptions'];
@@ -1607,7 +1607,7 @@ class SurveyAdministrationController extends LSBaseController
                 $archivedTokenSettings = new ArchivedTableSettings();
                 $archivedTokenSettings->survey_id = $iSurveyID;
                 $archivedTokenSettings->user_id = $userID;
-                $archivedTokenSettings->tbl_name = $sNewSurveyTableName;
+                $archivedTokenSettings->tbl_name = "old_survey_{$iSurveyID}_{$date}";
                 $archivedTokenSettings->tbl_type = 'response';
                 $archivedTokenSettings->created = $DBDate;
                 $archivedTokenSettings->properties = json_encode(Response::getEncryptedAttributes($iSurveyID));
@@ -1627,7 +1627,7 @@ class SurveyAdministrationController extends LSBaseController
                 $archivedTokenSettings = new ArchivedTableSettings();
                 $archivedTokenSettings->survey_id = $iSurveyID;
                 $archivedTokenSettings->user_id = $userID;
-                $archivedTokenSettings->tbl_name = $sNewTimingsTableName;
+                $archivedTokenSettings->tbl_name = "old_survey_{$iSurveyID}_timings_{$date}";
                 $archivedTokenSettings->tbl_type = 'timings';
                 $archivedTokenSettings->created = $DBDate;
                 $archivedTokenSettings->properties = '';
