@@ -111,4 +111,16 @@ class ArchivedTableSettings extends LSActiveRecord
     {
         return parent::model($className);
     }
+
+    /**
+     * Import archived tables to Table
+     */
+    public function importArchivedTables()
+    {
+        $query = dbSelectTablesLike('{{old_}}%');
+        $archivedTables = $aTables = Yii::app()->db->createCommand($query)->queryColumn();
+        foreach ($archivedTables as $archivedTable) {
+
+        }
+    }
 }
