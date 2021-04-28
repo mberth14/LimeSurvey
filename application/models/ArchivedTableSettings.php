@@ -127,9 +127,9 @@ class ArchivedTableSettings extends LSActiveRecord
         foreach ($archivedTables as $archivedTable) {
             $tableName = substr($archivedTable, strlen($DBPrefix));
             $tableNameParts = explode('_', $tableName);
-            $type = $tableNameParts[1] ?? '';
-            $surveyID = $tableNameParts[2] ?? '';
-            $type_extended = $tableNameParts[3] ?? '';
+            $type = (string)$tableNameParts[1] ?? '';
+            $surveyID = (string)$tableNameParts[2] ?? '';
+            $type_extended = (string)$tableNameParts[3] ?? '';
             // skip if table entry allready exists
             foreach ($archivedTableSettings as $archivedTableSetting) {
                 if ($archivedTableSetting->tbl_name === $tableName) {
