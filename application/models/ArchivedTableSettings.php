@@ -10,7 +10,7 @@
  * @property string $tbl_name
  * @property string $tbl_type
  * @property string $created
- * @property string $properties has ['unknown'] if encryption status unknown
+ * @property string $properties JSON encoded settings, ['unknown'] if encryption status is unknown
  */
 class ArchivedTableSettings extends LSActiveRecord
 {
@@ -127,9 +127,9 @@ class ArchivedTableSettings extends LSActiveRecord
         foreach ($archivedTables as $archivedTable) {
             $tableName = substr($archivedTable, strlen($DBPrefix));
             $tableNameParts = explode('_', $tableName);
-            $type = (string)$tableNameParts[1] ?? '';
-            $surveyID = (string)$tableNameParts[2] ?? '';
-            $type_extended = (string)$tableNameParts[3] ?? '';
+            $type = $tableNameParts[1] ?? '';
+            $surveyID = (int)$tableNameParts[2] ?? 0;
+            $type_extended = $tableNameParts[3] ?? '';
             // skip if table entry allready exists
             foreach ($archivedTableSettings as $archivedTableSetting) {
                 if ($archivedTableSetting->tbl_name === $tableName) {
