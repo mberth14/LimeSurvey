@@ -2539,13 +2539,21 @@ class tokens extends Survey_Common_Action
 
             // Set the $tokenencryptionoptions from the encryption column in ArchivedTableSettings                                                  tokens_282267_20210422115937
             $archivedTableSettings = ArchivedTableSettings::model()->findByAttributes(['tbl_name' => $archivedTable]);
-            $tokenencryptionoptions = ls_json_encode($aTokenencryptionoptions);
+            $tokenencryptionoptions = $tokenencryptionoptionsOld = ls_json_encode($aTokenencryptionoptions);
             if ($archivedTableSettings->properties) {
                 $tokenencryptionoptions = $archivedTableSettings->properties;
+            }
+            // if the encryption status is unknown
+            $archivedTableSettingsArray = json_decode($archivedTableSettings->properties, true);
+            foreach ($archivedTableSettingsArray as $archivedTableSetting) {
+                if ($archivedTableSetting === 'unknown') {
+                    $tokenencryptionoptions = $tokenencryptionoptionsOld;
+                }
             }
 
             Survey::model()->updateByPk($iSurveyId, ['attributedescriptions' => json_encode($fieldcontents), 'tokenencryptionoptions' => $tokenencryptionoptions]);
             Yii::app()->db->createCommand()->renameTable("{{{$archivedTable}}}", "{{tokens_" . (int)$iSurveyId . "}}");
+            $archivedTableSettings->delete();
             // Refresh schema cache just in case the table existed in the past
             Yii::app()->db->schema->getTable("{{tokens_" . (int)$iSurveyId . "}}", true);
 

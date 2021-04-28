@@ -10,7 +10,7 @@
  * @property string $tbl_name
  * @property string $tbl_type
  * @property string $created
- * @property string $properties
+ * @property string $properties has ['unknown'] if encryption status unknown
  */
 class ArchivedTableSettings extends LSActiveRecord
 {
@@ -117,10 +117,46 @@ class ArchivedTableSettings extends LSActiveRecord
      */
     public function importArchivedTables()
     {
+        $DBPrefix = Yii::app()->db->tablePrefix;
+        $datestamp = time();
+        $DBDate = date('Y-m-d H:i:s', $datestamp);
+        $userID = Yii::app()->user->getId();
         $query = dbSelectTablesLike('{{old_}}%');
-        $archivedTables = $aTables = Yii::app()->db->createCommand($query)->queryColumn();
+        $archivedTables = Yii::app()->db->createCommand($query)->queryColumn();
+        $archivedTableSettings = ArchivedTableSettings::model()->findAll();
         foreach ($archivedTables as $archivedTable) {
-
+            $tableName = substr($archivedTable, strlen($DBPrefix));
+            $tableNameParts = explode('_', $tableName);
+            $type = $tableNameParts[1] ?? '';
+            $surveyID = $tableNameParts[2] ?? '';
+            $type_extended = $tableNameParts[3] ?? '';
+            // skip if table entry allready exists
+            foreach ($archivedTableSettings as $archivedTableSetting) {
+                if ($archivedTableSetting->tbl_name === $tableName) {
+                    continue 2;
+                }
+            }
+            $archivedTokenSettings = new ArchivedTableSettings();
+            $archivedTokenSettings->survey_id = $surveyID;
+            $archivedTokenSettings->user_id = $userID;
+            $archivedTokenSettings->tbl_name = $tableName;
+            $archivedTokenSettings->created = $DBDate;
+            $archivedTokenSettings->properties = json_encode(['unknown']);
+            if ($type === 'survey') {
+                $archivedTokenSettings->tbl_type = 'response';
+                if ($type_extended === 'timings') {
+                    $archivedTokenSettings->tbl_type = 'timings';
+                    $archivedTokenSettings->save();
+                    continue;
+                }
+                $archivedTokenSettings->save();
+                continue;
+            }
+            if ($type === 'tokens') {
+                $archivedTokenSettings->tbl_type = 'token';
+                $archivedTokenSettings->save();
+                continue;
+            }
         }
     }
 }

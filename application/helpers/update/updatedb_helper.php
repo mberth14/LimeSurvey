@@ -3808,6 +3808,7 @@ function db_upgrade_all($iOldDBVersion, $bSilent = false)
         }
 
         if ($iOldDBVersion < 445) {
+
             $oTransaction = $oDB->beginTransaction();
             // archived_table_settings
             $oDB->createCommand()->createTable('{{archived_table_settings}}', [
@@ -3819,6 +3820,7 @@ function db_upgrade_all($iOldDBVersion, $bSilent = false)
                 'created' => "datetime NOT NULL",
                 'properties' => "text NOT NULL",
             ], $options);
+            ArchivedTableSettings::model()->importArchivedTables();
 
             $oDB->createCommand()->update('{{settings_global}}', array('stg_value' => 445), "stg_name='DBVersion'");
 
