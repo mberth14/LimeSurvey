@@ -1212,6 +1212,11 @@ class tokens extends Survey_Common_Action
         $this->getController()->redirect(array("/admin/tokens/sa/managetokenattributes/surveyid/{$iSurveyId}"));
     }
 
+    /**
+     * Updates Token encryption settings based on $iSurveyId and configuration $aEncryptionSettings
+     * @param $iSurveyId
+     * @param $aEncryptionSettings
+     */
     public function updateEncryption($iSurveyId, $aEncryptionSettings)
     {
         $iSurveyId = (int) $iSurveyId;
@@ -2551,32 +2556,39 @@ class tokens extends Survey_Common_Action
                 }
             }
 
-            Survey::model()->updateByPk($iSurveyId, ['attributedescriptions' => json_encode($fieldcontents), 'tokenencryptionoptions' => $tokenencryptionoptions]);
-            Yii::app()->db->createCommand()->renameTable("{{{$archivedTable}}}", "{{tokens_" . (int)$iSurveyId . "}}");
-            $archivedTableSettings->delete();
-            // Refresh schema cache just in case the table existed in the past
-            Yii::app()->db->schema->getTable("{{tokens_" . (int)$iSurveyId . "}}", true);
+            $oDB = Yii::app()->db;
+            $oTransaction = $oDB->beginTransaction();
+            try {
+                Survey::model()->updateByPk($iSurveyId, ['attributedescriptions' => json_encode($fieldcontents), 'tokenencryptionoptions' => $tokenencryptionoptions]);
+                Yii::app()->db->createCommand()->renameTable("{{{$archivedTable}}}", "{{tokens_" . (int)$iSurveyId . "}}");
+                $archivedTableSettings->delete();
+                // Refresh schema cache just in case the table existed in the past
+                Yii::app()->db->schema->getTable("{{tokens_" . (int)$iSurveyId . "}}", true);
 
-            foreach ($aTokenencryptionoptions['columns'] as $column => $fieldname) {
-                $aEncryptionSettings[$column]['encrypted'] = $fieldname;
+                foreach ($aTokenencryptionoptions['columns'] as $column => $fieldname) {
+                    $aEncryptionSettings[$column]['encrypted'] = $fieldname;
+                }
+                $this->updateEncryption($iSurveyId, $aEncryptionSettings);
+
+                //Add any survey_links from the renamed table
+                SurveyLink::model()->rebuildLinksFromTokenTable($iSurveyId);
+
+                $this->_renderWrappedTemplate(
+                    'token',
+                    [
+                        'message' => [
+                            'title'   => gT("Import old participant table"),
+                            'message' => gT("A survey participants table has been created for this survey and the old participants were imported.") . " (\"" . Yii::app()->db->tablePrefix . "tokens_$iSurveyId" . "\")<br /><br />\n"
+                                . "<input type='submit' class='btn btn-default' value='"
+                                . gT("Continue") . "' onclick=\"window.open('" . $this->getController()->createUrl("admin/tokens/sa/index/surveyid/$iSurveyId") . "', '_top')\" />\n"
+                        ]
+                    ],
+                    $aData
+                );
+            } catch (\Exception $e) {
+                $oTransaction->rollback();
+                return;
             }
-            $this->updateEncryption($iSurveyId, $aEncryptionSettings);
-
-            //Add any survey_links from the renamed table
-            SurveyLink::model()->rebuildLinksFromTokenTable($iSurveyId);
-
-            $this->_renderWrappedTemplate(
-                'token',
-                [
-                    'message' => [
-                        'title'   => gT("Import old participant table"),
-                        'message' => gT("A survey participants table has been created for this survey and the old participants were imported.") . " (\"" . Yii::app()->db->tablePrefix . "tokens_$iSurveyId" . "\")<br /><br />\n"
-                            . "<input type='submit' class='btn btn-default' value='"
-                            . gT("Continue") . "' onclick=\"window.open('" . $this->getController()->createUrl("admin/tokens/sa/index/surveyid/$iSurveyId") . "', '_top')\" />\n"
-                    ]
-                ],
-                $aData
-            );
 
             LimeExpressionManager::SetDirtyFlag(); // so that knows that survey participants tables have changed
         } else {

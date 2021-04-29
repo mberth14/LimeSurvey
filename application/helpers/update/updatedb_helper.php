@@ -3820,7 +3820,7 @@ function db_upgrade_all($iOldDBVersion, $bSilent = false)
                 'created' => "datetime NOT NULL",
                 'properties' => "text NOT NULL",
             ], $options);
-            ArchivedTableSettings::model()->importArchivedTables();
+            upgradeArchivedTableSettings445();
 
             $oDB->createCommand()->update('{{settings_global}}', array('stg_value' => 445), "stg_name='DBVersion'");
 
@@ -3895,6 +3895,58 @@ function db_upgrade_all($iOldDBVersion, $bSilent = false)
 
     Yii::app()->setConfig('Updating', false);
     return true;
+}
+
+
+/**
+ * Import previously archived tables to ArchivedTableSettings
+ *
+ * @return void
+ * @throws CException
+ */
+function upgradeArchivedTableSettings445()
+{
+    $DBPrefix = Yii::app()->db->tablePrefix;
+    $datestamp = time();
+    $DBDate = date('Y-m-d H:i:s', $datestamp);
+    $userID = Yii::app()->user->getId();
+    $query = dbSelectTablesLike('{{old_}}%');
+    $archivedTables = Yii::app()->db->createCommand($query)->queryColumn();
+    $archivedTableSettings = ArchivedTableSettings::model()->findAll();
+    foreach ($archivedTables as $archivedTable) {
+        $tableName = substr($archivedTable, strlen($DBPrefix));
+        $tableNameParts = explode('_', $tableName);
+        $type = $tableNameParts[1] ?? '';
+        $surveyID = $tableNameParts[2] ?? '';
+        $typeExtended = $tableNameParts[3] ?? '';
+        // skip if table entry allready exists
+        foreach ($archivedTableSettings as $archivedTableSetting) {
+            if ($archivedTableSetting->tbl_name === $tableName) {
+                continue 2;
+            }
+        }
+        $archivedTokenSettings = new ArchivedTableSettings();
+        $archivedTokenSettings->survey_id = (int) $surveyID;
+        $archivedTokenSettings->user_id = $userID;
+        $archivedTokenSettings->tbl_name = $tableName;
+        $archivedTokenSettings->created = $DBDate;
+        $archivedTokenSettings->properties = json_encode(['unknown']);
+        if ($type === 'survey') {
+            $archivedTokenSettings->tbl_type = 'response';
+            if ($typeExtended === 'timings') {
+                $archivedTokenSettings->tbl_type = 'timings';
+                $archivedTokenSettings->save();
+                continue;
+            }
+            $archivedTokenSettings->save();
+            continue;
+        }
+        if ($type === 'tokens') {
+            $archivedTokenSettings->tbl_type = 'token';
+            $archivedTokenSettings->save();
+            continue;
+        }
+    }
 }
 
 function extendDatafields429($oDB)

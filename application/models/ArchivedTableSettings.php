@@ -17,7 +17,7 @@ class ArchivedTableSettings extends LSActiveRecord
     /**
      * @return string the associated database table name
      */
-    public function tableName()
+    public function tableName(): string
     {
         return '{{archived_table_settings}}';
     }
@@ -25,7 +25,7 @@ class ArchivedTableSettings extends LSActiveRecord
     /**
      * @return array validation rules for model attributes.
      */
-    public function rules()
+    public function rules(): array
     {
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
@@ -43,7 +43,7 @@ class ArchivedTableSettings extends LSActiveRecord
     /**
      * @return array relational rules.
      */
-    public function relations()
+    public function relations(): array
     {
         // NOTE: you may need to adjust the relation name and the related
         // class name for the relations automatically generated below.
@@ -54,7 +54,7 @@ class ArchivedTableSettings extends LSActiveRecord
     /**
      * @return array customized attribute labels (name=>label)
      */
-    public function attributeLabels()
+    public function attributeLabels(): array
     {
         return [
             'id'         => 'ID',
@@ -79,7 +79,7 @@ class ArchivedTableSettings extends LSActiveRecord
      * @return CActiveDataProvider the data provider that can return the models
      * based on the search/filter conditions.
      */
-    public function search()
+    public function search(): CActiveDataProvider
     {
         // @todo Please modify the following code to remove attributes that should not be searched.
 
@@ -107,58 +107,9 @@ class ArchivedTableSettings extends LSActiveRecord
      * @param string $className active record class name.
      * @return static the static model class
      */
-    public static function model($className = __CLASS__)
+    public static function model($className = __CLASS__): ArchivedTableSettings
     {
         return parent::model($className);
     }
 
-    /**
-     * Import archived tables to Table
-     *
-     * @return void
-     */
-    public function importArchivedTables()
-    {
-        $DBPrefix = Yii::app()->db->tablePrefix;
-        $datestamp = time();
-        $DBDate = date('Y-m-d H:i:s', $datestamp);
-        $userID = Yii::app()->user->getId();
-        $query = dbSelectTablesLike('{{old_}}%');
-        $archivedTables = Yii::app()->db->createCommand($query)->queryColumn();
-        $archivedTableSettings = ArchivedTableSettings::model()->findAll();
-        foreach ($archivedTables as $archivedTable) {
-            $tableName = substr($archivedTable, strlen($DBPrefix));
-            $tableNameParts = explode('_', $tableName);
-            $type = $tableNameParts[1] ?? '';
-            $surveyID = (int)$tableNameParts[2] ?? 0;
-            $type_extended = $tableNameParts[3] ?? '';
-            // skip if table entry allready exists
-            foreach ($archivedTableSettings as $archivedTableSetting) {
-                if ($archivedTableSetting->tbl_name === $tableName) {
-                    continue 2;
-                }
-            }
-            $archivedTokenSettings = new ArchivedTableSettings();
-            $archivedTokenSettings->survey_id = (int) $surveyID;
-            $archivedTokenSettings->user_id = $userID;
-            $archivedTokenSettings->tbl_name = $tableName;
-            $archivedTokenSettings->created = $DBDate;
-            $archivedTokenSettings->properties = json_encode(['unknown']);
-            if ($type === 'survey') {
-                $archivedTokenSettings->tbl_type = 'response';
-                if ($type_extended === 'timings') {
-                    $archivedTokenSettings->tbl_type = 'timings';
-                    $archivedTokenSettings->save();
-                    continue;
-                }
-                $archivedTokenSettings->save();
-                continue;
-            }
-            if ($type === 'tokens') {
-                $archivedTokenSettings->tbl_type = 'token';
-                $archivedTokenSettings->save();
-                continue;
-            }
-        }
-    }
 }
