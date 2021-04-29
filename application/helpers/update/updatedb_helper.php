@@ -3811,15 +3811,15 @@ function db_upgrade_all($iOldDBVersion, $bSilent = false)
 
             $oTransaction = $oDB->beginTransaction();
             // archived_table_settings
-            $oDB->createCommand()->createTable('{{archived_table_settings}}', [
-                'id' => "pk",
-                'survey_id' => "int NOT NULL",
-                'user_id' => "int NOT NULL",
-                'tbl_name' => "string(255) NOT NULL",
-                'tbl_type' => "string(10) NOT NULL",
-                'created' => "datetime NOT NULL",
-                'properties' => "text NOT NULL",
-            ], $options);
+//            $oDB->createCommand()->createTable('{{archived_table_settings}}', [
+//                'id' => "pk",
+//                'survey_id' => "int NOT NULL",
+//                'user_id' => "int NOT NULL",
+//                'tbl_name' => "string(255) NOT NULL",
+//                'tbl_type' => "string(10) NOT NULL",
+//                'created' => "datetime NOT NULL",
+//                'properties' => "text NOT NULL",
+//            ], $options);
             upgradeArchivedTableSettings445();
 
             $oDB->createCommand()->update('{{settings_global}}', array('stg_value' => 445), "stg_name='DBVersion'");
@@ -3906,13 +3906,14 @@ function db_upgrade_all($iOldDBVersion, $bSilent = false)
  */
 function upgradeArchivedTableSettings445()
 {
+    $db = Yii::app()->db;
     $DBPrefix = Yii::app()->db->tablePrefix;
     $datestamp = time();
     $DBDate = date('Y-m-d H:i:s', $datestamp);
     $userID = Yii::app()->user->getId();
     $query = dbSelectTablesLike('{{old_}}%');
     $archivedTables = Yii::app()->db->createCommand($query)->queryColumn();
-    $archivedTableSettings = ArchivedTableSettings::model()->findAll();
+    $archivedTableSettings = Yii::app()->db->createCommand("SELECT * FROM {{archived_table_settings}}")->queryAll();
     foreach ($archivedTables as $archivedTable) {
         $tableName = substr($archivedTable, strlen($DBPrefix));
         $tableNameParts = explode('_', $tableName);
@@ -3921,29 +3922,30 @@ function upgradeArchivedTableSettings445()
         $typeExtended = $tableNameParts[3] ?? '';
         // skip if table entry allready exists
         foreach ($archivedTableSettings as $archivedTableSetting) {
-            if ($archivedTableSetting->tbl_name === $tableName) {
+            if ($archivedTableSetting['tbl_name'] === $tableName) {
                 continue 2;
             }
         }
-        $archivedTokenSettings = new ArchivedTableSettings();
-        $archivedTokenSettings->survey_id = (int) $surveyID;
-        $archivedTokenSettings->user_id = $userID;
-        $archivedTokenSettings->tbl_name = $tableName;
-        $archivedTokenSettings->created = $DBDate;
-        $archivedTokenSettings->properties = json_encode(['unknown']);
+        $newArchivedTableSettings = [
+            'survey_id'  => (int)$surveyID,
+            'user_id'    => $userID,
+            'tbl_name'   => $tableName,
+            'created'    => $DBDate,
+            'properties' => json_encode(['unknown'])
+        ];
         if ($type === 'survey') {
-            $archivedTokenSettings->tbl_type = 'response';
+            $newArchivedTableSettings['tbl_type'] = 'response';
             if ($typeExtended === 'timings') {
-                $archivedTokenSettings->tbl_type = 'timings';
-                $archivedTokenSettings->save();
+                $newArchivedTableSettings['tbl_type'] = 'timings';
+                $db->createCommand()->insert('{{archived_table_settings}}', $newArchivedTableSettings);
                 continue;
             }
-            $archivedTokenSettings->save();
+            $db->createCommand()->insert('{{archived_table_settings}}', $newArchivedTableSettings);
             continue;
         }
         if ($type === 'tokens') {
-            $archivedTokenSettings->tbl_type = 'token';
-            $archivedTokenSettings->save();
+            $newArchivedTableSettings['tbl_type'] = 'token';
+            $db->createCommand()->insert('{{archived_table_settings}}', $newArchivedTableSettings);
             continue;
         }
     }
