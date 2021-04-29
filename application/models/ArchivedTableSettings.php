@@ -35,7 +35,6 @@ class ArchivedTableSettings extends LSActiveRecord
             ['tbl_name', 'length', 'max' => 255],
             ['tbl_type', 'length', 'max' => 10],
             // The following rule is used by search().
-            // @todo Please remove those attributes that should not be searched.
             ['id, survey_id, user_id, tbl_name, tbl_type, created, properties', 'safe', 'on' => 'search'],
         ];
     }
@@ -111,5 +110,4 @@ class ArchivedTableSettings extends LSActiveRecord
     {
         return parent::model($className);
     }
-
 }
