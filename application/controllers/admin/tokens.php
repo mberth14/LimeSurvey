@@ -2572,6 +2572,7 @@ class tokens extends Survey_Common_Action
 
                 //Add any survey_links from the renamed table
                 SurveyLink::model()->rebuildLinksFromTokenTable($iSurveyId);
+                $oTransaction->commit();
 
                 $this->_renderWrappedTemplate(
                     'token',
